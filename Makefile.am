@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = . src po
+SUBDIRS = . src po tests
 
 INTLTOOL_FILES = \
 	intltool-extract.in \
