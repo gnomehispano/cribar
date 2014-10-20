@@ -2,3 +2,24 @@ Cribar
 ======
 
 Cribar is a photo selection tool to discard photos in an easy way.
+
+Required software
+=================
+
+For application launching
+ * GTK 3.12
+
+For testing:
+ * Python Behave 1.2.4
+ * Dogtail 0.9.0
+
+Compile
+=======
+
+$ autogen.sh
+$ make
+
+Test
+====
+
+$ make check
