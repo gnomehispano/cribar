@@ -15,14 +15,14 @@ cribar_CPPFLAGS = \
 
 cribar_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(GTK_CFLAGS) \
+	$(CRIBAR_MODULES_CFLAGS) \
 	$(AM_CFLAGS) \
 	$(NULL)
 
 cribar_LDFLAGS =
 
 cribar_LDADD = \
-	$(GTK_LIBS) \
+	$(CRIBAR_MODULES_LIBS) \
 	$(NULL)
 
 -include $(top_srcdir)/git.mk
