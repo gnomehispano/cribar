@@ -4,7 +4,7 @@ Taller de testing de aplicaciones GTK+ con Dogtail
 Aquí voy a ir anotando los commits donde se pueden ver
 los hitos.
 
-248a459
+273137a
 Aplicación base y estructura para realizar "make test"
 con un test que abre la aplicación y la cierra.
 
