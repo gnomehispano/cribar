@@ -161,7 +161,7 @@ cribar_application_directory_visit (GFile *directory, GFileInfo *children_info)
 	if (load_uri) {
 		/* child = g_file_get_child (directory, name); */
 		/* eog_list_store_append_image_from_file (store, child); */
-                g_print ("Going to append: %s\n", name);
+                /* g_print ("Going to append: %s\n", name); */
 	}
 }
 
