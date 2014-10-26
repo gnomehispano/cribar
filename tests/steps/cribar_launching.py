@@ -15,7 +15,7 @@ def step_impl(context):
 @given(u'the main window is presented')
 def step_impl(context):
     try:
-        context.main_window = context.app.window('cribar')
+        context.main_window = context.app.child(roleName='frame')
     except tree.SearchError:
         assert False, 'Cannot find the main window'
 

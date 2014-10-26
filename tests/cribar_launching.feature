@@ -3,7 +3,7 @@
 
 Feature: Application launch
 
-@wip
+@launching
 Scenario: Launch and quit Cribar
          Given the application is launched
          And the main window is presented
