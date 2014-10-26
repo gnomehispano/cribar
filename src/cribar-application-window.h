@@ -46,9 +46,10 @@ struct _CribarApplicationWindowClass {
         GtkApplicationWindowClass parent_class;
 };
 
-GType        cribar_application_window_get_type    (void) G_GNUC_CONST;
+GType        cribar_application_window_get_type  (void) G_GNUC_CONST;
 
-GtkWidget*   cribar_application_window_new         (GtkApplication *application);
+GtkWidget*   cribar_application_window_new       (GtkApplication *application);
+void         cribar_application_window_set_photo (CribarApplicationWindow *self, GFile *photo);
 
 G_END_DECLS
 

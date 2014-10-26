@@ -32,6 +32,9 @@ static void cribar_application_activate   (GApplication         *application);
 struct _CribarApplicationPrivate {
         GtkWidget *window;
         guint32 activation_timestamp;
+        GFile *file_inbox;
+        GFileEnumerator *file_enumerator;
+        GFile *current_photo;
 };
 
 G_DEFINE_TYPE_WITH_CODE (CribarApplication, cribar_application, GTK_TYPE_APPLICATION, G_ADD_PRIVATE (CribarApplication));
@@ -43,7 +46,16 @@ static gint     cribar_application_compare_quarks           (gconstpointer a, gc
 static GList*   cribar_application_get_supported_mime_types (void);
 static gboolean cribar_application_is_supported_mime_type   (const char *mime_type);
 static void     cribar_application_populate_inbox           (CribarApplication *self);
-static void     cribar_application_directory_visit          (GFile *directory, GFileInfo *children_info);
+static gboolean cribar_application_check_file               (GFileInfo  *file_info);
+static void     cribar_application_next_photo               (GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void     cribar_application_discard_photo            (GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void     cribar_application_accept_photo             (GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
+static GActionEntry app_entries[] = {
+        { "next", cribar_application_next_photo },
+        { "discard", cribar_application_discard_photo },
+        { "accept", cribar_application_accept_photo }
+};
 
 static void
 cribar_application_class_init (CribarApplicationClass *klass)
@@ -58,23 +70,28 @@ cribar_application_init (CribarApplication *self)
 {
         CribarApplicationPrivate *priv = cribar_application_get_instance_private(self);
 
+        self->priv = priv;
+
         priv->window = NULL;
         priv->activation_timestamp = GDK_CURRENT_TIME;
-        /* g_get_user_special_dir */
+        priv->file_enumerator = NULL;
+
+        g_action_map_add_action_entries (G_ACTION_MAP (self),
+                                         app_entries, G_N_ELEMENTS (app_entries),
+                                         self);
 }
 
 static void
 cribar_application_activate (GApplication *application)
 {
         CribarApplication *self = CRIBAR_APPLICATION (application);
-        CribarApplicationPrivate *priv = cribar_application_get_instance_private (self);
 
-        if (priv->window == NULL) {
-                priv->window = cribar_application_window_new (GTK_APPLICATION (self));
+        if (self->priv->window == NULL) {
+                self->priv->window = cribar_application_window_new (GTK_APPLICATION (self));
         }
 
-        gtk_window_present_with_time (GTK_WINDOW (priv->window), priv->activation_timestamp);
-        priv->activation_timestamp = GDK_CURRENT_TIME;
+        gtk_window_present_with_time (GTK_WINDOW (self->priv->window), self->priv->activation_timestamp);
+        self->priv->activation_timestamp = GDK_CURRENT_TIME;
 
         cribar_application_populate_inbox (self);
 }
@@ -93,20 +110,18 @@ static GList*
 cribar_application_get_supported_mime_types (void)
 {
 	GSList *format_list, *it;
-	gchar **mime_types;
-	int i;
 
 	if (!supported_mime_types) {
 		format_list = gdk_pixbuf_get_formats ();
 
 		for (it = format_list; it != NULL; it = it->next) {
-			mime_types =
-				gdk_pixbuf_format_get_mime_types ((GdkPixbufFormat *) it->data);
+                        gchar **mime_types;
+                        gint i;
+
+			mime_types = gdk_pixbuf_format_get_mime_types ((GdkPixbufFormat *) it->data);
 
 			for (i = 0; mime_types[i] != NULL; i++) {
-				supported_mime_types =
-					g_list_prepend (supported_mime_types,
-							g_strdup (mime_types[i]));
+				supported_mime_types = g_list_prepend (supported_mime_types, g_strdup (mime_types[i]));
 			}
 
 			g_strfreev (mime_types);
@@ -142,15 +157,15 @@ cribar_application_is_supported_mime_type (const char *mime_type)
 	return (result != NULL);
 }
 
-static void
-cribar_application_directory_visit (GFile *directory, GFileInfo *children_info)
+static gboolean
+cribar_application_check_file (GFileInfo *file_info)
 {
 	/* GFile *child; */
 	gboolean load_uri = FALSE;
 	const char *mime_type, *name;
 
-	mime_type = g_file_info_get_content_type (children_info);
-	name = g_file_info_get_name (children_info);
+	mime_type = g_file_info_get_content_type (file_info);
+	name = g_file_info_get_name (file_info);
 
         if (!g_str_has_prefix (name, ".")) {
 		if (cribar_application_is_supported_mime_type (mime_type)) {
@@ -158,40 +173,112 @@ cribar_application_directory_visit (GFile *directory, GFileInfo *children_info)
 		}
 	}
 
-	if (load_uri) {
-		/* child = g_file_get_child (directory, name); */
-		/* eog_list_store_append_image_from_file (store, child); */
-                /* g_print ("Going to append: %s\n", name); */
-	}
+        return load_uri;
 }
 
 static void
 cribar_application_populate_inbox (CribarApplication *self)
 {
         gchar *inbox_path;
-        GFile *inbox_file;
-	GFileEnumerator *file_enumerator;
-        GFileInfo *file_info;
 
         inbox_path = g_build_path (G_DIR_SEPARATOR_S, g_get_home_dir (), "Inbox", NULL);
-        g_print ("Inbox path: %s\n", inbox_path);
         g_return_if_fail (g_file_test (inbox_path, G_FILE_TEST_IS_DIR));
-        inbox_file = g_file_new_for_path (inbox_path);
+        self->priv->file_inbox = g_file_new_for_path (inbox_path);
 
-        file_enumerator = g_file_enumerate_children (inbox_file,
-                                                     G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE "," G_FILE_ATTRIBUTE_STANDARD_NAME,
-						     0,
-                                                     NULL,
-                                                     NULL);
-        file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL);
-        while (file_info != NULL) {
-                cribar_application_directory_visit (inbox_file, file_info);
-		g_object_unref (file_info);
-		file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL);
+        self->priv->file_enumerator = g_file_enumerate_children (self->priv->file_inbox,
+                                                                 G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE "," G_FILE_ATTRIBUTE_STANDARD_NAME,
+                                                                 0,
+                                                                 NULL,
+                                                                 NULL);
+
+        g_free (inbox_path);
+
+        g_action_activate (g_action_map_lookup_action (G_ACTION_MAP (self), "next"), NULL);
+}
+
+static void
+cribar_application_next_photo (__attribute__ ((unused)) GSimpleAction *action, __attribute__ ((unused)) GVariant *parameter, gpointer user_data)
+{
+        CribarApplication *self;
+        GFileInfo *file_info;
+
+        self = CRIBAR_APPLICATION (user_data);
+        file_info = g_file_enumerator_next_file (self->priv->file_enumerator, NULL, NULL);
+        if (file_info == NULL) {
+                cribar_application_window_set_photo (CRIBAR_APPLICATION_WINDOW (self->priv->window), NULL);
+                return;
         }
 
-        g_object_unref (file_enumerator);
-        g_free (inbox_path);
+        if (cribar_application_check_file (file_info)) {
+                self->priv->current_photo = g_file_get_child (self->priv->file_inbox, g_file_info_get_name (file_info));
+                cribar_application_window_set_photo (CRIBAR_APPLICATION_WINDOW (self->priv->window), self->priv->current_photo);
+        }
+
+        g_object_unref (file_info);
+}
+
+static void
+cribar_application_discard_photo (__attribute__ ((unused)) GSimpleAction *action, __attribute__ ((unused)) GVariant *parameter, gpointer user_data)
+{
+        CribarApplication *self;
+        GFileInfo *file_info;
+        gboolean can_trash, result;
+
+        self = CRIBAR_APPLICATION (user_data);
+        g_return_if_fail (self->priv->current_photo != NULL);
+
+	file_info = g_file_query_info (self->priv->current_photo,
+				       G_FILE_ATTRIBUTE_ACCESS_CAN_TRASH,
+				       0, NULL, NULL);
+	if (file_info == NULL) {
+                g_warning ("Couldn't access trash.");
+                return;
+	}
+
+	can_trash = g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_TRASH);
+	g_object_unref (file_info);
+	if (can_trash) {
+		result = g_file_trash (self->priv->current_photo, NULL, NULL);
+		if (result == FALSE) {
+                        g_warning ("Couldn't access trash.");
+		}
+	}
+
+        g_object_unref (self->priv->current_photo);
+        self->priv->current_photo = NULL;
+        g_action_activate (g_action_map_lookup_action (G_ACTION_MAP (self), "next"), NULL);
+}
+
+static void
+cribar_application_accept_photo (__attribute__ ((unused)) GSimpleAction *action, __attribute__ ((unused)) GVariant *parameter, gpointer user_data)
+{
+        CribarApplication *self;
+        GFileInfo *file_info;
+        gchar *name;
+        gchar *new_path;
+        GFile *destination_file;
+        GError *error;
+
+        self = CRIBAR_APPLICATION (user_data);
+        g_return_if_fail (self->priv->current_photo != NULL);
+
+        file_info = g_file_query_info (self->priv->current_photo,
+                                       G_FILE_ATTRIBUTE_STANDARD_NAME,
+                                       0, NULL, NULL);
+        name = g_file_info_get_attribute_as_string (file_info, G_FILE_ATTRIBUTE_STANDARD_NAME);
+        new_path = g_build_path (G_DIR_SEPARATOR_S,
+                                 g_get_user_special_dir (G_USER_DIRECTORY_PICTURES),
+                                 name,
+                                 NULL);
+        destination_file = g_file_new_for_path (new_path);
+        if (g_file_move (self->priv->current_photo, destination_file, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error) != TRUE)
+                g_warning ("Can't move the file %s to %s: %s\n", name, new_path, error->message);
+
+        g_free (name);
+        g_free (new_path);
+        g_object_unref (self->priv->current_photo);
+        self->priv->current_photo = NULL;
+        g_action_activate (g_action_map_lookup_action (G_ACTION_MAP (self), "next"), NULL);        
 }
 
 GtkApplication*
