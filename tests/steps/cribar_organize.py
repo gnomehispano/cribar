@@ -17,7 +17,7 @@ def step_impl(context):
 
 @when(u"the user click on 'Trash'")
 def step_impl(context):
-    accept_button = context.main_window.child('Accept')
+    accept_button = context.main_window.child('Trash')
     accept_button.click()
 
 
@@ -35,6 +35,18 @@ def step_impl(context):
 def step_impl(context):
     photo_file = os.path.join(os.environ['HOME'], 'Pictures', '2874984824_5b11dd69af_o.jpg')
     assert os.path.isfile(photo_file)
+    os.system('rm -f ' + os.path.join(context.inbox_path, '*'))
+    os.system('rm -f ' + photo_file)
+    context.execute_steps(u'''
+    When the user quit the application
+    Then the application is stopped
+    ''')
+
+
+@then(u'the photo has been removed')
+def step_impl(context):
+    photo_file = os.path.join(os.environ['HOME'], 'Inbox', '2874984824_5b11dd69af_o.jpg')
+    assert os.path.isfile(photo_file) is False
     os.system('rm -f ' + os.path.join(context.inbox_path, '*'))
     os.system('rm -f ' + photo_file)
     context.execute_steps(u'''

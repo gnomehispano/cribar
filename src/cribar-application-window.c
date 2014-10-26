@@ -66,8 +66,7 @@ cribar_application_window_init (CribarApplicationWindow *self)
         gtk_widget_show (widget);
 
         widget = gtk_button_new_from_icon_name ("user-trash-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
-        /* gtk_widget_set_name (widget, "Trash"); */
-        /* gtk_button_set_label (GTK_BUTTON (widget), "Discard"); */
+        atk_object_set_name (gtk_widget_get_accessible (widget), "Trash");
         gtk_actionable_set_action_name (GTK_ACTIONABLE (widget), "app.discard");
         gtk_style_context_add_class (gtk_widget_get_style_context (widget), "destructive-action");
         gtk_header_bar_pack_end (GTK_HEADER_BAR (self->priv->header_bar), widget);
