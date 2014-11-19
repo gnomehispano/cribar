@@ -83,6 +83,7 @@ cribar_application_window_init (CribarApplicationWindow *self)
         self->priv->label_widget = gtk_label_new ("<big>No more images</big>");
         gtk_label_set_use_markup (GTK_LABEL (self->priv->label_widget), TRUE);
         gtk_stack_add_named (GTK_STACK (self->priv->stack), self->priv->label_widget, "label");
+        gtk_widget_show (self->priv->label_widget);
 }
 
 GtkWidget*
