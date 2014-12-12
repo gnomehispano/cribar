@@ -124,8 +124,27 @@ cribar_application_window_set_photo (CribarApplicationWindow *self, GFile *photo
                         GFileInfo *file_info;
                         gchar *name;
                         GdkPixbuf *sized_pixbuf;
+                        gint width;
+                        gint width_diff;
+                        gint height;
+                        gint height_diff;
+                        gfloat image_factor;
 
-                        sized_pixbuf = gdk_pixbuf_scale_simple (original_pixbuf, 640, 480, GDK_INTERP_NEAREST);
+                        width = gdk_pixbuf_get_width (original_pixbuf);
+                        height = gdk_pixbuf_get_height (original_pixbuf);
+                        width_diff = width - WINDOW_MIN_WIDTH;
+                        height_diff = height - WINDOW_MIN_HEIGHT;
+                        if (width_diff > height_diff) {
+                                image_factor = (gfloat) height / (gfloat) width;
+                                width = WINDOW_MIN_WIDTH;
+                                height = height - (width_diff * image_factor);
+                        } else {
+                                image_factor = (gfloat) width / (gfloat) height;
+                                height = WINDOW_MIN_HEIGHT;
+                                width = width - (height_diff * image_factor);
+                        }
+
+                        sized_pixbuf = gdk_pixbuf_scale_simple (original_pixbuf, width, height, GDK_INTERP_NEAREST);
                         gtk_image_set_from_pixbuf (GTK_IMAGE (self->priv->image_widget), sized_pixbuf);
                         g_object_unref (original_pixbuf);
 
