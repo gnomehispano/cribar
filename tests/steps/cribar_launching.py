@@ -1,6 +1,7 @@
 from behave import *
 from dogtail import tree
 from dogtail.utils import run
+import os
 
 
 @given(u'the application is launched')
@@ -20,6 +21,11 @@ def step_impl(context):
         assert False, 'Cannot find the main window'
 
 
+@given(u'the Inbox folder have not photos')
+def step_impl(context):
+    os.system("rm " + os.path.join(os.environ['HOME'], 'Inbox', '*'))
+
+
 @when(u'the user quit the application')
 def step_impl(context):
     context.gs.getApplicationMenuButton('Cribar').click()
@@ -37,3 +43,13 @@ def step_impl(context):
         app = None
 
     assert app is None, "Appliation not closed"
+
+
+@then(u'the {button} button is unsensitive')
+def step_impl(context, button):
+    accept_button = context.main_window.child(button)
+    assert accept_button.sensitive == False, "The button is sensitive"
+    context.execute_steps(u'''
+    When the user quit the application
+    Then the application is stopped
+    ''')
