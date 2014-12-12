@@ -25,9 +25,8 @@
 #include "cribar-application.h"
 #include "cribar-application-window.h"
 
-static void cribar_application_class_init (CribarApplicationClass *klass);
-static void cribar_application_init       (CribarApplication      *self);
 static void cribar_application_activate   (GApplication         *application);
+static void cribar_application_startup   (GApplication         *application);
 
 struct _CribarApplicationPrivate {
         GtkWidget *window;
@@ -63,6 +62,7 @@ cribar_application_class_init (CribarApplicationClass *klass)
         GApplicationClass *application_class = G_APPLICATION_CLASS (klass);
 
         application_class->activate = cribar_application_activate;
+        application_class->startup = cribar_application_startup;
 }
 
 static void
@@ -94,6 +94,16 @@ cribar_application_activate (GApplication *application)
         self->priv->activation_timestamp = GDK_CURRENT_TIME;
 
         cribar_application_populate_inbox (self);
+}
+
+static void
+cribar_application_startup (GApplication *application)
+{
+        G_APPLICATION_CLASS (cribar_application_parent_class)->startup (application);
+
+        g_object_set (G_OBJECT (gtk_settings_get_default()),
+                      "gtk-application-prefer-dark-theme", TRUE,
+                      NULL);
 }
 
 static gint
