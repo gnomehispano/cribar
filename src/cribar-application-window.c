@@ -34,6 +34,8 @@ static void cribar_application_window_init       (CribarApplicationWindow *self)
 struct _CribarApplicationWindowPrivate {
         GtkWidget *header_bar;
         GtkWidget *stack;
+        GtkWidget *accept_button;
+        GtkWidget *trash_button;
         GtkWidget *image_widget;
         GtkWidget *label_widget;
 };
@@ -48,8 +50,6 @@ cribar_application_window_class_init (__attribute__ ((unused)) CribarApplication
 static void
 cribar_application_window_init (CribarApplicationWindow *self)
 {
-        GtkWidget *widget;
-
         self->priv = cribar_application_window_get_instance_private (self);
 
         self->priv->header_bar = gtk_header_bar_new ();
@@ -58,19 +58,19 @@ cribar_application_window_init (CribarApplicationWindow *self)
         gtk_window_set_titlebar (GTK_WINDOW (self), self->priv->header_bar);
         gtk_widget_show (self->priv->header_bar);
 
-        widget = gtk_button_new ();
-        gtk_button_set_label (GTK_BUTTON (widget), "Accept");
-        gtk_actionable_set_action_name (GTK_ACTIONABLE (widget), "app.accept");
-        gtk_style_context_add_class (gtk_widget_get_style_context (widget), "suggested-action");
-        gtk_header_bar_pack_start (GTK_HEADER_BAR (self->priv->header_bar), widget);
-        gtk_widget_show (widget);
+        self->priv->accept_button = gtk_button_new ();
+        gtk_button_set_label (GTK_BUTTON (self->priv->accept_button), "Accept");
+        gtk_actionable_set_action_name (GTK_ACTIONABLE (self->priv->accept_button), "app.accept");
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->accept_button), "suggested-action");
+        gtk_header_bar_pack_start (GTK_HEADER_BAR (self->priv->header_bar), self->priv->accept_button);
+        gtk_widget_show (self->priv->accept_button);
 
-        widget = gtk_button_new_from_icon_name ("user-trash-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
-        atk_object_set_name (gtk_widget_get_accessible (widget), "Trash");
-        gtk_actionable_set_action_name (GTK_ACTIONABLE (widget), "app.discard");
-        gtk_style_context_add_class (gtk_widget_get_style_context (widget), "destructive-action");
-        gtk_header_bar_pack_end (GTK_HEADER_BAR (self->priv->header_bar), widget);
-        gtk_widget_show (widget);
+        self->priv->trash_button = gtk_button_new_from_icon_name ("user-trash-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+        atk_object_set_name (gtk_widget_get_accessible (self->priv->trash_button), "Trash");
+        gtk_actionable_set_action_name (GTK_ACTIONABLE (self->priv->trash_button), "app.discard");
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->trash_button), "destructive-action");
+        gtk_header_bar_pack_end (GTK_HEADER_BAR (self->priv->header_bar), self->priv->trash_button);
+        gtk_widget_show (self->priv->trash_button);
 
         self->priv->stack = gtk_stack_new ();
         gtk_container_add (GTK_CONTAINER (self), self->priv->stack);
@@ -106,6 +106,8 @@ cribar_application_window_set_photo (CribarApplicationWindow *self, GFile *photo
         g_return_if_fail (CRIBAR_IS_APPLICATION_WINDOW (self));
 
         if (photo == NULL) {
+                gtk_widget_set_sensitive (self->priv->accept_button, FALSE);
+                gtk_widget_set_sensitive (self->priv->trash_button, FALSE);
                 gtk_stack_set_visible_child_name (GTK_STACK (self->priv->stack), "label");
                 return;
         }
