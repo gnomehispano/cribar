@@ -106,6 +106,7 @@ cribar_application_window_set_photo (CribarApplicationWindow *self, GFile *photo
         g_return_if_fail (CRIBAR_IS_APPLICATION_WINDOW (self));
 
         if (photo == NULL) {
+                gtk_header_bar_set_title (GTK_HEADER_BAR (self->priv->header_bar), _("Cribar"));
                 gtk_widget_set_sensitive (self->priv->accept_button, FALSE);
                 gtk_widget_set_sensitive (self->priv->trash_button, FALSE);
                 gtk_stack_set_visible_child_name (GTK_STACK (self->priv->stack), "label");
